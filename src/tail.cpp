@@ -1,5 +1,8 @@
 #include <iostream>
+#include <boost/program_options.hpp>
 #include "arg_parser.h"
+
+namespace po = boost::program_options;
 
 /**
   Options:
@@ -12,6 +15,10 @@
 */
 
 int main(int argc, char *argv[]) {
+    po::options_description desc("Allowed options");
+    desc.add_options()
+            ("help", "produce help message")
+            ("compression", po::value<double>(), "set compression level");
 //  arg_parser test{argc, argv};
 
   std::cout << "Has " << argc << " arguments:" << std::endl;
