@@ -19,6 +19,15 @@ int main(int argc, char *argv[]) {
     desc.add_options()
             ("help", "produce help message")
             ("compression", po::value<double>(), "set compression level");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+
+    if (vm.count("help")) {
+        std::cout << desc << "\n";
+        return 0;
+    }
 //  arg_parser test{argc, argv};
 
   std::cout << "Has " << argc << " arguments:" << std::endl;
