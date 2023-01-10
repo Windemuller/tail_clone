@@ -1,0 +1,7 @@
+# ninja log v5
+0	23	1673362862653289454	build.ninja	fec84010b33874d8
+1	27	1673362872909251529	CMakeFiles/tail_clone.dir/src/arg_parser.cpp.o	ef47121a856243f0
+0	205	1673362879269228011	CMakeFiles/tail_clone.dir/src/tail.cpp.o	550b71fd142d1772
+0	19	1673362896749163377	CMakeFiles/tail_clone.dir/src/arg_parser.cpp.o	ef47121a856243f0
+0	185	1673362896925162727	CMakeFiles/tail_clone.dir/src/tail.cpp.o	550b71fd142d1772
+185	220	1673362896957162608	tail_clone	9f8c99917eccd8f1
