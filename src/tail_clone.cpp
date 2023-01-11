@@ -17,6 +17,57 @@ namespace po = boost::program_options;
   * --version
 */
 
+void read_pipe_test(std::basic_istream<char> &stream, int line_count) {
+    std::vector<std::string> vect{};
+
+    std::string line;
+    while (std::getline(stream, line)) {
+        vect.push_back(line);
+    }
+
+    int start = vect.size() - line_count;
+    if (start < 0) {
+        start = 0;
+    }
+    for (int i = start; i < vect.size(); i++) {
+        std::cout << vect[i] << std::endl;
+    }
+}
+
+void read_stream_test(std::basic_istream<char> &stream, int line_count) {
+    stream.seekg(0, std::ios::end);
+
+    // Get the current position of the file. Because we opened it with mode ate, it is at the end of the file.
+    auto file_end_pos = stream.tellg();
+    std::cout << file_end_pos;
+
+    int newlines = 0;
+    char out;
+    for (int i = 1; i <= file_end_pos; i++) {
+        // Move the file pointer back one character
+        stream.seekg(-i, std::ios::end);
+        stream.get(out);
+        if (i != 1 && out == '\n') {
+            newlines++;
+        }
+        if (newlines == line_count) {
+            break;
+        }
+    }
+    if (newlines < line_count) {
+        // We didn't find 10 newlines, so we need to start at the beginning of the file
+        stream.seekg(0, std::ios::beg);
+    }
+
+    auto file_pos = stream.tellg();
+    // Output everything from the current position to the end of the file
+    for (int i = file_pos; i < file_end_pos; i++) {
+        stream.seekg(i, std::ios::beg);
+        stream.get(out);
+        std::cout << out;
+    }
+}
+
 void read_file_test(std::string filename, int line_count) {
     // Open the file
     std::ifstream file{};
@@ -27,34 +78,7 @@ void read_file_test(std::string filename, int line_count) {
         exit(1);
     }
 
-    // Get the current position of the file. Because we opened it with mode ate, it is at the end of the file.
-    std::streampos file_end_pos = file.tellg();
-
-    int newlines = 0;
-    char out;
-    for (int i = 1; i <= file_end_pos; i++) {
-        // Move the file pointer back one character
-        file.seekg(-i, std::ios::end);
-        file.get(out);
-        if (i != 1 && out == '\n') {
-            newlines++;
-        }
-        if (newlines == line_count) {
-            break;
-        }
-    }
-    if (newlines < line_count) {
-        // We didn't find 10 newlines, so we need to start at the beginning of the file
-        file.seekg(0, std::ios::beg);
-    }
-
-    auto file_pos = file.tellg();
-    // Output everything from the current position to the end of the file
-    for (int i = file_pos; i < file_end_pos; i++) {
-        file.seekg(i, std::ios::beg);
-        file.get(out);
-        std::cout << out;
-    }
+    read_stream_test(file, line_count);
 }
 
 int main(int argc, char *argv[]) {
@@ -91,11 +115,12 @@ int main(int argc, char *argv[]) {
             read_file_test(vm["file"].as<std::string>(), line_count);
         } else {
             // There is no file, read from stdin
-            std::string input;
-            while (std::getline(std::cin, input)) { // TODO: Read from bottom
-                std::cout << input << std::endl;
-            }
-            std::cout << std::endl;
+            read_pipe_test(std::cin, vm["lines"].as<int>());
+//            std::string input;
+//            while (std::getline(std::cin, input)) { // TODO: Read from bottom
+//                std::cout << input << std::endl;
+//            }
+//            std::cout << std::endl;
         }
 //        if (vm.count("bytes")) {
 //            std::cout << "Bytes was set to "
