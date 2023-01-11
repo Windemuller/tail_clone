@@ -3,6 +3,8 @@
 #include <fstream>
 #include "arg_parser.h"
 
+#define NEW_LINE_COUNT 10
+
 namespace po = boost::program_options;
 
 /**
@@ -30,22 +32,25 @@ void read_file_test(std::string filename) {
 
     int newlines = 0;
     char out;
-    for (auto i = 1; i <= file_end_pos; i++) {
+    for (int i = 1; i <= file_end_pos; i++) {
         // Move the file pointer back one character
         file.seekg(-i, std::ios::end);
         file.get(out);
         if (out == '\n') {
             newlines++;
         }
-        if (newlines == 10) {
+        if (newlines == NEW_LINE_COUNT) {
             break;
         }
     }
+    if (newlines < NEW_LINE_COUNT) {
+        // We didn't find 10 newlines, so we need to start at the beginning of the file
+        file.seekg(0, std::ios::beg);
+    }
 
     auto file_pos = file.tellg();
-
     // Output everything from the current position to the end of the file
-    for (long i = file_pos; i < file_end_pos; i++) {
+    for (int i = file_pos; i < file_end_pos; i++) {
         file.seekg(i, std::ios::beg);
         file.get(out);
         std::cout << out;
