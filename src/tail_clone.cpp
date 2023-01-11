@@ -26,12 +26,27 @@ void read_file_test(std::string filename) {
     }
 
     // Get the current position of the file. Because we opened it with mode ate, it is at the end of the file.
-    std::streampos file_pos = file.tellg();
+    std::streampos file_end_pos = file.tellg();
 
+    int newlines = 0;
     char out;
-    for (int i = 1; i <= file_pos; i++) {
+    for (auto i = 1; i <= file_end_pos; i++) {
         // Move the file pointer back one character
         file.seekg(-i, std::ios::end);
+        file.get(out);
+        if (out == '\n') {
+            newlines++;
+        }
+        if (newlines == 10) {
+            break;
+        }
+    }
+
+    auto file_pos = file.tellg();
+
+    // Output everything from the current position to the end of the file
+    for (long i = file_pos; i < file_end_pos; i++) {
+        file.seekg(i, std::ios::beg);
         file.get(out);
         std::cout << out;
     }
