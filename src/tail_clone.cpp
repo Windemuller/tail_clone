@@ -3,7 +3,7 @@
 #include <fstream>
 #include "arg_parser.h"
 
-#define NEW_LINE_COUNT 10
+#define DEFAULT_NEW_LINE_COUNT 10
 
 namespace po = boost::program_options;
 
@@ -17,7 +17,7 @@ namespace po = boost::program_options;
   * --version
 */
 
-void read_file_test(std::string filename) {
+void read_file_test(std::string filename, int line_count) {
     // Open the file
     std::ifstream file{};
     file.open(filename, std::ios::ate);
@@ -36,14 +36,14 @@ void read_file_test(std::string filename) {
         // Move the file pointer back one character
         file.seekg(-i, std::ios::end);
         file.get(out);
-        if (out == '\n') {
+        if (i != 1 && out == '\n') {
             newlines++;
         }
-        if (newlines == NEW_LINE_COUNT) {
+        if (newlines == line_count) {
             break;
         }
     }
-    if (newlines < NEW_LINE_COUNT) {
+    if (newlines < line_count) {
         // We didn't find 10 newlines, so we need to start at the beginning of the file
         file.seekg(0, std::ios::beg);
     }
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
 "Arguments");
         desc.add_options()
                 ("bytes", po::value<int>()->value_name("[+]NUM"), "output the last NUM bytes")
-                ("lines", po::value<int>()->value_name("[+]NUM")->default_value(10), "output the last NUM lines")
+                ("lines", po::value<int>()->value_name("[+]NUM")->default_value(DEFAULT_NEW_LINE_COUNT), "output the last NUM lines")
                 ("follow,f", po::bool_switch(), "output appended data as the file grows")
                 ("sleep-interval,s", po::value<int>()->value_name("NUM")->default_value(1), "with -f, sleep for approximately NUM seconds (default 1.0) between iterations")
                 ("help", "display this help and exit")
@@ -87,9 +87,8 @@ int main(int argc, char *argv[]) {
         }
         if (vm.count("file")) {
             // If there is a file defined, read it
-//            std::cout << "File:";
-//            std::cout << vm["file"].as<std::string>() << "\n";
-            read_file_test(vm["file"].as<std::string>());
+            int line_count = vm["lines"].as<int>();
+            read_file_test(vm["file"].as<std::string>(), line_count);
         } else {
             // There is no file, read from stdin
             std::string input;
