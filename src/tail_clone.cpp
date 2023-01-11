@@ -1,5 +1,6 @@
 #include <iostream>
 #include <boost/program_options.hpp>
+#include <fstream>
 #include "arg_parser.h"
 
 namespace po = boost::program_options;
@@ -13,6 +14,28 @@ namespace po = boost::program_options;
   * --help
   * --version
 */
+
+void read_file_test(std::string filename) {
+    // Open the file
+    std::ifstream file{};
+    file.open(filename, std::ios::ate);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        exit(1);
+    }
+
+    // Get the current position of the file. Because we opened it with mode ate, it is at the end of the file.
+    std::streampos file_pos = file.tellg();
+
+    char out;
+    for (int i = 1; i <= file_pos; i++) {
+        // Move the file pointer back one character
+        file.seekg(-i, std::ios::end);
+        file.get(out);
+        std::cout << out;
+    }
+}
 
 int main(int argc, char *argv[]) {
     try {
@@ -44,12 +67,13 @@ int main(int argc, char *argv[]) {
         }
         if (vm.count("file")) {
             // If there is a file defined, read it
-            std::cout << "File:";
-            std::cout << vm["file"].as<std::string>() << "\n";
+//            std::cout << "File:";
+//            std::cout << vm["file"].as<std::string>() << "\n";
+            read_file_test(vm["file"].as<std::string>());
         } else {
             // There is no file, read from stdin
             std::string input;
-            while (std::getline(std::cin, input)) {
+            while (std::getline(std::cin, input)) { // TODO: Read from bottom
                 std::cout << input << std::endl;
             }
             std::cout << std::endl;
