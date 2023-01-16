@@ -1,7 +1,6 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <fstream>
-#include "arg_parser.h"
 
 #define DEFAULT_NEW_LINE_COUNT 10
 
@@ -17,68 +16,87 @@ namespace po = boost::program_options;
   * --version
 */
 
-void read_pipe_test(std::basic_istream<char> &stream, int line_count) {
-    std::vector<std::string> vect{};
-
-    std::string line;
-    while (std::getline(stream, line)) {
-        vect.push_back(line);
+std::vector<char> get_basic_stream_chars(std::istream &stream) {
+    std::vector<char> contents;
+    char c;
+    while (stream.get(c)) {
+        contents.push_back(c);
     }
+    return contents;
+}
 
-    int start = vect.size() - line_count;
-    if (start < 0) {
-        start = 0;
-    }
-    for (int i = start; i < vect.size(); i++) {
-        std::cout << vect[i] << std::endl;
+void read_basic_istream_bytes(std::basic_istream<char> &stream, int byte_count) {
+    // Read in all characters from the stream
+    auto chars = get_basic_stream_chars(stream);
+
+    // Print the last N characters
+    for (int i = chars.size() - byte_count; i < chars.size(); i++) {
+        std::cout << chars[i];
     }
 }
 
-void read_stream_test(std::basic_istream<char> &stream, int line_count) {
-    stream.seekg(0, std::ios::end);
+void read_basic_istream_lines(std::basic_istream<char> &stream, int line_count) {
+    std::vector<std::string> lines{};
 
+    std::string line;
+    while (std::getline(stream, line)) {
+        lines.push_back(line);
+    }
+
+    int start = lines.size() - line_count;
+    if (start < 0) {
+        start = 0;
+    }
+    for (int i = start; i < lines.size(); i++) {
+        std::cout << lines[i] << std::endl;
+    }
+}
+
+void read_file_stream_lines(std::ifstream &file_stream, int line_count) {
     // Get the current position of the file. Because we opened it with mode ate, it is at the end of the file.
-    auto file_end_pos = stream.tellg();
-    std::cout << file_end_pos;
+    auto file_end_pos = file_stream.tellg();
 
-    int newlines = 0;
+    int new_lines = 0;
     char out;
     for (int i = 1; i <= file_end_pos; i++) {
         // Move the file pointer back one character
-        stream.seekg(-i, std::ios::end);
-        stream.get(out);
+        file_stream.seekg(-i, std::ios::end);
+        file_stream.get(out);
         if (i != 1 && out == '\n') {
-            newlines++;
+            new_lines++;
         }
-        if (newlines == line_count) {
+        if (new_lines == line_count) {
             break;
         }
     }
-    if (newlines < line_count) {
-        // We didn't find 10 newlines, so we need to start at the beginning of the file
-        stream.seekg(0, std::ios::beg);
+    if (new_lines < line_count) {
+        // We didn't find 10 new_lines, so we need to start at the beginning of the file
+        file_stream.seekg(0, std::ios::beg);
     }
 
-    auto file_pos = stream.tellg();
+    auto file_pos = file_stream.tellg();
+
     // Output everything from the current position to the end of the file
     for (int i = file_pos; i < file_end_pos; i++) {
-        stream.seekg(i, std::ios::beg);
-        stream.get(out);
+        file_stream.seekg(i, std::ios::beg);
+        file_stream.get(out);
         std::cout << out;
     }
 }
 
-void read_file_test(std::string filename, int line_count) {
-    // Open the file
+void read_file_stream_bytes(std::ifstream &file_stream, int byte_count) {
+    char out;
+    for (int i = byte_count; i >= 0; i--) {
+        file_stream.seekg(-i, std::ios::end);
+        file_stream.get(out);
+        std::cout << out;
+    }
+}
+
+std::ifstream open_file(std::string filename) {
     std::ifstream file{};
     file.open(filename, std::ios::ate);
-
-    if (!file.is_open()) {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        exit(1);
-    }
-
-    read_stream_test(file, line_count);
+    return file;
 }
 
 int main(int argc, char *argv[]) {
@@ -110,29 +128,32 @@ int main(int argc, char *argv[]) {
             return 0;
         }
         if (vm.count("file")) {
-            // If there is a file defined, read it
-            int line_count = vm["lines"].as<int>();
-            read_file_test(vm["file"].as<std::string>(), line_count);
+            // If there is a file defined, open it
+            auto file = open_file(vm["file"].as<std::string>());
+            if (!file.is_open()) {
+                std::cerr << "Error opening file: " << vm["file"].as<std::string>() << std::endl;
+                return 1;
+            }
+
+            if (vm.count("bytes")) {
+                read_file_stream_bytes(file, vm["bytes"].as<int>());
+            } else {
+                read_file_stream_lines(file, vm["lines"].as<int>());
+            }
         } else {
             // There is no file, read from stdin
-            read_pipe_test(std::cin, vm["lines"].as<int>());
-//            std::string input;
-//            while (std::getline(std::cin, input)) { // TODO: Read from bottom
-//                std::cout << input << std::endl;
-//            }
-//            std::cout << std::endl;
+            if (vm.count("bytes")) {
+                read_basic_istream_bytes(std::cin, vm["bytes"].as<int>());
+            } else {
+                read_basic_istream_lines(std::cin, vm["lines"].as<int>());
+            }
         }
-//        if (vm.count("bytes")) {
-//            std::cout << "Bytes was set to "
-//                      << vm["bytes"].as<int>() << ".\n";
-//        } else {
-//            std::cout << "Bytes was not set.\n";
-//        }
     } catch(std::exception& e) {
         std::cerr << "Error: " << e.what() << "\n";
         return 1;
     } catch(...) {
         std::cerr << "Error!\n";
+        return 1;
     }
     return 0;
 }
