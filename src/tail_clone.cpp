@@ -1,12 +1,15 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <fstream>
+#include <chrono>
+#include <thread>
 #include "tail_clone_config.h"
 
 #define PROGRAM_NAME "tail_clone"
 #define PROGRAM_AUTHORS "Stijn Stroeve and Stephan Windemuller"
 
 #define DEFAULT_NEW_LINE_COUNT 10
+#define DEFAULT_SLEEP_INTERVAL_SECONDS 1
 
 namespace po = boost::program_options;
 
@@ -78,26 +81,30 @@ void read_file_stream_lines(std::ifstream &file_stream, int line_count) {
         file_stream.seekg(0, std::ios::beg);
     }
 
-    auto file_pos = file_stream.tellg();
-
     // Output everything from the current position to the end of the file
-    for (int i = file_pos; i < file_end_pos; i++) {
+    for (int i = file_stream.tellg(); i < file_end_pos; i++) {
         file_stream.seekg(i, std::ios::beg);
         file_stream.get(out);
         std::cout << out;
     }
+
+    // Flush the output stream so that all output is written to the terminal
+    std::cout.flush();
 }
 
 void read_file_stream_bytes(std::ifstream &file_stream, int byte_count) {
     char out;
-    for (int i = byte_count; i >= 0; i--) {
+    for (int i = byte_count; i > 0; i--) {
         file_stream.seekg(-i, std::ios::end);
         file_stream.get(out);
         std::cout << out;
     }
+
+    // Flush the output stream so that all output is written to the terminal
+    std::cout.flush();
 }
 
-std::ifstream open_file(std::string filename) {
+std::ifstream open_file(std::string& filename) {
     std::ifstream file{};
     file.open(filename, std::ios::ate);
     return file;
@@ -137,18 +144,44 @@ int main(int argc, char *argv[]) {
                       << "Written by " << PROGRAM_AUTHORS << "." << std::endl;
             return 0;
         }
+        bool follow = vm["follow"].as<bool>();
+        if (follow && !vm.count("file")) {
+            throw std::invalid_argument("-f, --follow option requires a file");
+        }
+
         if (vm.count("file")) {
             // If there is a file defined, open it
-            auto file = open_file(vm["file"].as<std::string>());
+            auto file_name = vm["file"].as<std::string>();
+            auto file = open_file(file_name);
             if (!file.is_open()) {
-                std::cerr << "Error opening file: " << vm["file"].as<std::string>() << std::endl;
-                return 1;
+                throw std::invalid_argument("Could not open file '" + file_name + "'");
             }
 
             if (vm.count("bytes")) {
                 read_file_stream_bytes(file, vm["bytes"].as<int>());
             } else {
                 read_file_stream_lines(file, vm["lines"].as<int>());
+            }
+
+            int last_char_count = file.tellg();
+            file.close();
+            while (follow) {
+                std::this_thread::sleep_for(std::chrono::seconds(DEFAULT_SLEEP_INTERVAL_SECONDS));
+                file = open_file(file_name);
+
+                int char_count = file.tellg();
+                int new_chars = char_count - last_char_count;
+                if (new_chars < 0) {
+                    // The file has been truncated, so output the whole file
+                    std::cout << PROGRAM_NAME << ": " << file_name << ": file truncated" << std::endl;
+                    read_file_stream_bytes(file, char_count);
+                } else if (new_chars > 0) {
+                    // The file has been appended to, so output the new characters
+                    read_file_stream_bytes(file, new_chars);
+                }
+
+                last_char_count = char_count;
+                file.close();
             }
         } else {
             // There is no file, read from stdin
