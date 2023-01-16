@@ -1,8 +1,8 @@
 #include <iostream>
-#include <boost/program_options.hpp>
 #include <fstream>
 #include <chrono>
 #include <thread>
+#include <boost/program_options.hpp>
 #include "tail_clone_config.h"
 
 #define PROGRAM_NAME "tail_clone"
@@ -12,16 +12,6 @@
 #define DEFAULT_SLEEP_INTERVAL_MS 1000
 
 namespace po = boost::program_options;
-
-/**
-  Options:
-  * -c, --bytes=[+]NUM
-  * -n, --lines=[+]NUM
-  * -f, --follow
-  * -s, --sleep-interval=N
-  * --help
-  * --version
-*/
 
 std::vector<char> get_basic_stream_chars(std::istream &stream) {
     std::vector<char> contents;
@@ -104,6 +94,28 @@ void read_file_stream_bytes(std::ifstream &file_stream, int byte_count) {
     std::cout.flush();
 }
 
+[[noreturn]] void tail_follow(std::ifstream &file_stream, unsigned int sleep_interval_ms) {
+    int last_file_size = file_stream.tellg();
+    while (true) {
+        // Move the file pointer to the end of the file and get the current position
+        file_stream.seekg(0, std::ios::end);
+        int char_count = file_stream.tellg();
+
+        int new_chars = char_count - last_file_size;
+        if (new_chars < 0) {
+            // The file has been truncated, so output the whole file
+            std::cout << PROGRAM_NAME << ": file truncated" << std::endl;
+            read_file_stream_bytes(file_stream, char_count);
+        } else if (new_chars > 0) {
+            // The file has been appended to, so output the new characters
+            read_file_stream_bytes(file_stream, new_chars);
+        }
+
+        last_file_size = char_count;
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleep_interval_ms));
+    }
+}
+
 std::ifstream open_file(std::string& filename) {
     std::ifstream file{};
     file.open(filename, std::ios::ate);
@@ -119,12 +131,12 @@ int main(int argc, char *argv[]) {
                                            "Arguments";
         po::options_description desc(ss.str());
         desc.add_options()
-                ("bytes", po::value<int>()->value_name("[+]NUM"), "output the last NUM bytes")
-                ("lines", po::value<int>()->value_name("[+]NUM")->default_value(DEFAULT_NEW_LINE_COUNT), "output the last NUM lines")
+                ("bytes,c", po::value<int>()->value_name("[+]NUM"), "output the last NUM bytes")
+                ("lines,n", po::value<int>()->value_name("[+]NUM")->default_value(DEFAULT_NEW_LINE_COUNT), "output the last NUM lines")
                 ("follow,f", po::bool_switch(), "output appended data as the file grows")
                 ("sleep-interval,s", po::value<int>()->value_name("NUM")->default_value(DEFAULT_SLEEP_INTERVAL_MS), "with -f, sleep for approximately NUM milliseconds (default 1000) between iterations")
-                ("help", "display this help and exit")
-                ("version", "output version information and exit")
+                ("help,h", "display this help and exit")
+                ("version,v", "output version information and exit")
                 ("file", "the file to read from");
 
         // Add position argument "file"
@@ -158,37 +170,22 @@ int main(int argc, char *argv[]) {
             }
 
             if (vm.count("bytes")) {
-                read_file_stream_bytes(file, vm["bytes"].as<int>());
+                read_file_stream_bytes(file, abs(vm["bytes"].as<int>()));
             } else {
-                read_file_stream_lines(file, vm["lines"].as<int>());
+                read_file_stream_lines(file, abs(vm["lines"].as<int>()));
             }
 
-            int last_char_count = file.tellg();
-            file.close();
-            while (follow) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(vm["sleep-interval"].as<int>()));
-                file = open_file(file_name);
-
-                int char_count = file.tellg();
-                int new_chars = char_count - last_char_count;
-                if (new_chars < 0) {
-                    // The file has been truncated, so output the whole file
-                    std::cout << PROGRAM_NAME << ": " << file_name << ": file truncated" << std::endl;
-                    read_file_stream_bytes(file, char_count);
-                } else if (new_chars > 0) {
-                    // The file has been appended to, so output the new characters
-                    read_file_stream_bytes(file, new_chars);
-                }
-
-                last_char_count = char_count;
+            if (follow) {
+                tail_follow(file, abs(vm["sleep-interval"].as<int>()));
+            } else {
                 file.close();
             }
         } else {
             // There is no file, read from stdin
             if (vm.count("bytes")) {
-                read_basic_istream_bytes(std::cin, vm["bytes"].as<int>());
+                read_basic_istream_bytes(std::cin, abs(vm["bytes"].as<int>()));
             } else {
-                read_basic_istream_lines(std::cin, vm["lines"].as<int>());
+                read_basic_istream_lines(std::cin, abs(vm["lines"].as<int>()));
             }
         }
     } catch(std::exception& e) {

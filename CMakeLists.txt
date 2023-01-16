@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(tail_clone VERSION 0.1.0)
 add_executable(tail_clone inc/tail_clone_config.h.in)
 
-target_sources(tail_clone PRIVATE src/tail_clone.cpp src/arg_parser.cpp src/stream_contents.cpp)
+target_sources(tail_clone PRIVATE src/tail_clone.cpp)
 include_directories(./inc ${Boost_INCLUDE_DIRS} ${PROJECT_BINARY_DIR})
 
 find_package(Boost COMPONENTS program_options REQUIRED)
