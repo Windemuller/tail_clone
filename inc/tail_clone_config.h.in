@@ -1,0 +1,4 @@
+
+#define tail_clone_VERSION_MAJOR @tail_clone_VERSION_MAJOR@
+#define tail_clone_VERSION_MINOR @tail_clone_VERSION_MINOR@
+#define tail_clone_VERSION_PATCH @tail_clone_VERSION_PATCH@

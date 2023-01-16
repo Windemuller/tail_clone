@@ -1,6 +1,10 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <fstream>
+#include "tail_clone_config.h"
+
+#define PROGRAM_NAME "tail_clone"
+#define PROGRAM_AUTHORS "Stijn Stroeve and Stephan Windemuller"
 
 #define DEFAULT_NEW_LINE_COUNT 10
 
@@ -101,11 +105,12 @@ std::ifstream open_file(std::string filename) {
 
 int main(int argc, char *argv[]) {
     try {
-        po::options_description desc(
-"Usage: tail_clone [OPTION]... [FILE]...\n"
-"Print the last 10 lines of each FILE to standard output.\n\n"
-"With no FILE, read standard input.\n\n"
-"Arguments");
+        std::stringstream ss;
+        ss << "Usage: " << PROGRAM_NAME << " Usage: $ [OPTION]... [FILE]...\n"
+                                           "Print the last 10 lines of each FILE to standard output.\n\n"
+                                           "With no FILE, read standard input.\n\n"
+                                           "Arguments";
+        po::options_description desc(ss.str());
         desc.add_options()
                 ("bytes", po::value<int>()->value_name("[+]NUM"), "output the last NUM bytes")
                 ("lines", po::value<int>()->value_name("[+]NUM")->default_value(DEFAULT_NEW_LINE_COUNT), "output the last NUM lines")
@@ -125,6 +130,11 @@ int main(int argc, char *argv[]) {
 
         if (vm.count("help")) {
             std::cout << desc << "\n";
+            return 0;
+        }
+        if (vm.count("version")) {
+            std::cout << PROGRAM_NAME << " version " << tail_clone_VERSION_MAJOR << "." << tail_clone_VERSION_MINOR << "." << tail_clone_VERSION_PATCH << std::endl
+                      << "Written by " << PROGRAM_AUTHORS << "." << std::endl;
             return 0;
         }
         if (vm.count("file")) {
