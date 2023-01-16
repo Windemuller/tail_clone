@@ -9,7 +9,7 @@
 #define PROGRAM_AUTHORS "Stijn Stroeve and Stephan Windemuller"
 
 #define DEFAULT_NEW_LINE_COUNT 10
-#define DEFAULT_SLEEP_INTERVAL_SECONDS 1
+#define DEFAULT_SLEEP_INTERVAL_MS 1000
 
 namespace po = boost::program_options;
 
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
                 ("bytes", po::value<int>()->value_name("[+]NUM"), "output the last NUM bytes")
                 ("lines", po::value<int>()->value_name("[+]NUM")->default_value(DEFAULT_NEW_LINE_COUNT), "output the last NUM lines")
                 ("follow,f", po::bool_switch(), "output appended data as the file grows")
-                ("sleep-interval,s", po::value<int>()->value_name("NUM")->default_value(1), "with -f, sleep for approximately NUM seconds (default 1.0) between iterations")
+                ("sleep-interval,s", po::value<int>()->value_name("NUM")->default_value(DEFAULT_SLEEP_INTERVAL_MS), "with -f, sleep for approximately NUM milliseconds (default 1000) between iterations")
                 ("help", "display this help and exit")
                 ("version", "output version information and exit")
                 ("file", "the file to read from");
@@ -166,7 +166,7 @@ int main(int argc, char *argv[]) {
             int last_char_count = file.tellg();
             file.close();
             while (follow) {
-                std::this_thread::sleep_for(std::chrono::seconds(DEFAULT_SLEEP_INTERVAL_SECONDS));
+                std::this_thread::sleep_for(std::chrono::milliseconds(vm["sleep-interval"].as<int>()));
                 file = open_file(file_name);
 
                 int char_count = file.tellg();
