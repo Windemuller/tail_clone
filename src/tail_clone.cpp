@@ -83,6 +83,10 @@ void read_file_stream_lines(std::ifstream &file_stream, int line_count) {
 }
 
 void read_file_stream_bytes(std::ifstream &file_stream, int byte_count) {
+    if (byte_count > file_stream.tellg()) {
+        byte_count = file_stream.tellg();
+    }
+
     char out;
     for (int i = byte_count; i > 0; i--) {
         file_stream.seekg(-i, std::ios::end);
