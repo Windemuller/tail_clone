@@ -40,4 +40,11 @@ cmake_install.cmake
 CMakeCache.txt
 Makefile
 CMakeFiles
+build/
 cmake-build-*/
+/.cmake/api/v1/query/cache-v2
+/.cmake/api/v1/query/cmakeFiles-v1
+/.cmake/api/v1/query/codemodel-v2
+/Testing/Temporary/LastTest.log
+/tail_clone.cbp
+/.cmake/api/v1/query/toolchains-v1
